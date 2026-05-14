@@ -3,7 +3,7 @@ PlayStation Cafe Manager V5 Fixed
 طريقة التشغيل:
 1) فك الضغط.
 2) على الكمبيوتر افتح Start.bat.
-3) على الموبايل افتح PlayStation_Cafe_Manager_V5.html باستخدام Chrome.
+3) على الموبايل افتح index.html باستخدام Chrome.
 
 بيانات الدخول:
 admin / 1234

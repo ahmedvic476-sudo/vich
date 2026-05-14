@@ -1,8 +1,12 @@
-const CACHE_NAME = 'ps-cafe-v5';
+const CACHE_NAME = 'ps-cafe-v8';
 const urlsToCache = [
-  '/',
-  '/PlayStation_Cafe_Manager_V5.html',
-  '/manifest.json'
+  './index.html',
+  './manifest.json',
+  './service-worker.js',
+  './icon.jpeg',
+  './wallpaper.jpeg',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
