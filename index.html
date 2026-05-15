@@ -57,6 +57,13 @@ button{background:var(--accent-blue);border-color:var(--accent-blue);cursor:poin
 .mobile-nav .tab{display:flex;align-items:center;justify-content:flex-end;text-align:right;width:100%;min-height:52px;padding:14px 18px;margin:0;border:none;border-radius:16px;background:rgba(15,23,42,0.98);color:#fff;font-size:16px;white-space:normal;opacity:1;transition:background 0.2s}
 .mobile-nav .tab:hover{background:rgba(37,99,235,0.14)}
 .mobile-nav .tab.active{background:rgba(37,99,235,0.95);color:#fff}
+/* ACTION HOTFIX: prevent hidden mobile drawer/modal layers from blocking app buttons */
+.mobile-nav-backdrop:not(.open){display:none!important;visibility:hidden!important;pointer-events:none!important;}
+.mobile-nav-backdrop.open{display:flex!important;visibility:visible!important;pointer-events:auto!important;}
+#modal.hidden{display:none!important;visibility:hidden!important;pointer-events:none!important;}
+#modal:not(.hidden){display:flex!important;visibility:visible!important;pointer-events:auto!important;}
+#app:not(.hidden) .content,#app:not(.hidden) .top,#app:not(.hidden) button,#app:not(.hidden) input,#app:not(.hidden) select,#app:not(.hidden) textarea{pointer-events:auto;}
+
 @media(max-width:850px){body,.login{background-attachment:scroll;background-position:center top}.tabs{display:none!important}.tabs{flex-wrap:wrap;max-height:0;overflow:hidden;transition:max-height 0.3s ease}.tabs.open{max-height:500px}.mobile-menu-btn{display:flex}.content{padding:16px;margin:12px auto 16px;width:100%;background:rgba(15,23,42,0.95)}.box,.card{background:rgba(15,23,42,0.95);border:1px solid rgba(255,255,255,0.08)}.top{flex-direction:column;padding:12px 14px}.top-row1{margin-bottom:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;min-width:0}.top-row2{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;min-width:0}.top-row2 button{height:44px;padding:10px 14px;border-radius:14px;font-size:15px;white-space:nowrap}.g2,.g3,.g4,.g5{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:12px}.big{font-size:18px}.price{font-size:14px}.small{font-size:14px}button{height:44px;line-height:1.2}.modal{overflow-x:auto}.modal .box{width:min(100%,calc(100vw - 32px));max-width:100%}.settings-fullwidth input,#url,#key{direction:ltr;text-align:left;unicode-bidi:plaintext;font-family:monospace;width:100%;max-width:100%;box-sizing:border-box}}
 @media(max-width:330px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}</style>
 </head>
@@ -131,6 +138,74 @@ async function flushQueue(){if(st().mode!=='hybrid')return false;if(!navigator.o
 async function manualSync(){if(isFileProtocol()){setSyncStatus('المزامنة غير متاحة من ملف محلي. استخدم خادم HTTP أو اختر Offline فقط.','warn');return}let s=st();if(s.mode!=='hybrid'){setSyncStatus('فعل Hybrid Supabase من الإعدادات أولا','warn');return}if(!s.url||!s.key){setSyncStatus('إعدادات Supabase غير مكتملة. يعمل البرنامج محليًا.','warn');return}try{let synced=false;let q=queue().length;if(q){await flushQueue();synced=true}let loaded=await loadCloud();if(loaded)synced=true; if(!synced){setSyncStatus('لم يتم العثور على بيانات Supabase للتحميل أو المزامنة. يعمل البرنامج محليًا.','warn');return}let now=new Date().toISOString();setst({lastSync:now});setSyncStatus(`تمت المزامنة بنجاح مع Supabase. آخر مزامنة: ${formatShortTime(now)}`,'on');}catch(e){let msg='تعذر الاتصال بـ Supabase، يعمل البرنامج الآن في الوضع المحلي Offline.';let lower=(e.message||'').toLowerCase();if(lower.includes('could not find table')||lower.includes('ps_cafe_state')||lower.includes('relation'))msg='لم يتم العثور على جدول ps_cafe_state في Supabase. يعمل البرنامج محليًا.';else if(lower.includes('405')||lower.includes('not allowed'))msg='تعذر الاتصال بـ Supabase، يعمل البرنامج الآن في الوضع المحلي Offline.';else if(lower.includes('invalid api key')||lower.includes('unauthorized')||lower.includes('supabase url غير صالح')||lower.includes('مفتاح supabase غير صالح')||lower.includes('بيانات supabase غير مكتملة'))msg='إعدادات Supabase غير مكتملة. يعمل البرنامج محليًا.';else if(lower.includes('offlin')||lower.includes('لا يوجد اتصال')||lower.includes('connection'))msg='تعذر الاتصال بـ Supabase، يعمل البرنامج الآن في الوضع المحلي Offline.';console.warn('Supabase sync failed:',e);render();setSyncStatus(msg,'warn');}}
 function sched(){if(st().mode==='hybrid'){clearTimeout(window.sd);window.sd=setTimeout(()=>flushQueue().catch(e=>{console.warn(e.message);render()}),1200)}}
 function setup(){clearInterval(timer);window.removeEventListener('online',window.__psOnline||(()=>{}));window.__psOnline=()=>{if(st().mode==='hybrid')flushQueue().catch(console.warn)};window.addEventListener('online',window.__psOnline);if(st().mode==='hybrid'){timer=setInterval(()=>{if(dirty||queue().length)flushQueue().catch(e=>{console.warn(e.message);render()});else loadCloud().catch(console.warn)},15000)}}
+
+/* ACTION HOTFIX: keep legacy inline onclick buttons working after UI/PWA changes */
+function exposeActionHandlers(){
+  const names=['login','logout','manualSync','toggleMobileMenu','closeMobileMenu','show','newSessionModal','updateSessionTimeOptions','setDuration','startSession','addDrinksModal','addDrinkToSession','removeDrinkFromSession','endSessionModal','finalizeSession','showInvoice','extendSessionModal','extendDuration','prodModal','saveProd','deviceModal','saveDev','expModal','saveExp','delExp','userModal','saveUser','saveSettings','resetSupabaseDefaults','clearSupabaseSettings','exportBackup','importBackup','resetAll','closeM','showQueue','clearQueue','setTheme','setBrightness'];
+  names.forEach(n=>{try{if(typeof window[n]==='undefined'&&typeof eval(n)==='function')window[n]=eval(n)}catch(e){}});
+}
+function repairClickEnvironment(){
+  const backdrop=document.getElementById('mobileNavBackdrop');
+  if(backdrop&&!backdrop.classList.contains('open')){
+    backdrop.style.pointerEvents='none';
+    backdrop.style.visibility='hidden';
+    backdrop.style.display='none';
+    document.body.style.overflow='';
+  }
+  const modalEl=document.getElementById('modal');
+  if(modalEl&&modalEl.classList.contains('hidden')){
+    modalEl.style.pointerEvents='none';
+    modalEl.style.visibility='hidden';
+    modalEl.style.display='none';
+  }else if(modalEl){
+    modalEl.style.pointerEvents='auto';
+    modalEl.style.visibility='visible';
+    modalEl.style.display='flex';
+  }
+}
+const __oldToggleMobileMenu=toggleMobileMenu;
+toggleMobileMenu=function(){
+  const backdrop=document.getElementById('mobileNavBackdrop');
+  if(!backdrop)return;
+  backdrop.style.display='flex';
+  backdrop.style.visibility='visible';
+  backdrop.style.pointerEvents='auto';
+  __oldToggleMobileMenu();
+  if(!backdrop.classList.contains('open'))repairClickEnvironment();
+};
+const __oldCloseMobileMenu=closeMobileMenu;
+closeMobileMenu=function(e){
+  __oldCloseMobileMenu(e);
+  repairClickEnvironment();
+};
+const __oldModal=modal;
+modal=function(h){
+  const modalEl=document.getElementById('modal');
+  if(modalEl){modalEl.style.display='flex';modalEl.style.visibility='visible';modalEl.style.pointerEvents='auto';}
+  __oldModal(h);
+};
+const __oldCloseM=closeM;
+closeM=function(){
+  __oldCloseM();
+  repairClickEnvironment();
+};
+const __oldRender=render;
+render=function(){
+  __oldRender();
+  exposeActionHandlers();
+  setTimeout(repairClickEnvironment,0);
+};
+window.addEventListener('load',()=>{exposeActionHandlers();repairClickEnvironment();setInterval(()=>{exposeActionHandlers();repairClickEnvironment();},2500);});
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('button,[onclick]');
+  if(!b)return;
+  // If a hidden overlay accidentally catches the click, repair immediately.
+  const backdrop=document.getElementById('mobileNavBackdrop');
+  if(backdrop&&!backdrop.classList.contains('open'))repairClickEnvironment();
+},true);
+exposeActionHandlers();
+repairClickEnvironment();
+
 load();setup();
 </script><script>
   if ("serviceWorker" in navigator) {
