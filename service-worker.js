@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ps-cafe-v8';
+const CACHE_NAME = 'ps-cafe-v5-2-drawer-final-3';
 const urlsToCache = [
   './index.html',
   './manifest.json',
